@@ -48,7 +48,7 @@ func main() {
 
 	log.Println("Title:", doc.Find("title").Text())
 
-	snippets := doc.Find(".code-frame")
+	snippets := doc.Find("section[itemprop=articleBody] .code-frame")
 	if snippets.Size() == 0 {
 		log.Fatal("No snippets found")
 	}
