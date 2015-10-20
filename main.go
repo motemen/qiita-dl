@@ -1,6 +1,6 @@
 // qiita-dl is a simple tool that donwloads snippets published on Qiita <http://qiita.com>.
 //
-//   qiita-dl [-x] [-o <name>] [-d <directory>] <url>
+//   qiita-dl [-x] [-f] [-o <name>] [-d <directory>] <url>
 //
 // Example
 //
@@ -31,6 +31,7 @@ func main() {
 		flagFilename   = flag.String("o", "", "output filename")
 		flagDirname    = flag.String("d", "", "output directory")
 		flagIndex      = flag.Uint("n", 0, "specify snippet index")
+		flagForce      = flag.Bool("f", false, "overwrite existing file")
 	)
 
 	flag.Usage = func() {
@@ -47,14 +48,14 @@ func main() {
 
 	doc, err := goquery.NewDocument(url)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("error: %s", err)
 	}
 
 	log.Println("Title:", doc.Find("title").Text())
 
 	snippets := doc.Find("section[itemprop=articleBody] .code-frame")
 	if snippets.Size() == 0 {
-		log.Fatal("No snippets found")
+		log.Fatal("error: No snippets found")
 	}
 
 	var snippet *goquery.Selection
@@ -64,9 +65,9 @@ func main() {
 		snippet = snippets.Filter(":has(.code-lang)")
 	}
 	if snippet == nil || snippet.Size() == 0 {
-		log.Fatal("No snippets found")
+		log.Fatal("error: No snippets found")
 	} else if snippet.Size() > 1 {
-		log.Print("Too many snippets are there:")
+		log.Print("error: Too many snippets are there:")
 		snippets.Each(func(n int, s *goquery.Selection) {
 			body := s.Find("pre").Text()
 			if len(body) > 60 {
@@ -85,7 +86,7 @@ func main() {
 		filename = strings.TrimSpace(snippet.Find(".code-lang").Text())
 	}
 	if filename == "" {
-		log.Fatal("Could not detect filename; specify with -o")
+		log.Fatal("error: Could not detect filename; specify with -o")
 	}
 	if *flagDirname != "" {
 		filename = filepath.Join(*flagDirname, filename)
@@ -93,12 +94,23 @@ func main() {
 
 	content := snippet.Find("pre").Text()
 	if content == "" {
-		log.Fatal("Could not find content")
+		log.Fatal("error: Could not find content")
 	}
 
 	perm := os.FileMode(0666)
 	if *flagExecutable {
 		perm = 0777
+	}
+
+	if _, err := os.Stat(filename); err == nil {
+		if *flagForce {
+			err := os.Remove(filename)
+			if err != nil {
+				log.Fatalf("error: rm %s: %s", filename, err)
+			}
+		} else {
+			log.Fatalf("error: File %s exists; overwrite with -f", filename)
+		}
 	}
 
 	err = ioutil.WriteFile(filename, []byte(content), perm)
