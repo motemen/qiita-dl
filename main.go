@@ -1,10 +1,10 @@
 // qiita-dl is a simple tool that donwloads snippets published on Qiita <http://qiita.com>.
 //
-// Usage
-//
 //   qiita-dl [-x] [-o <name>] [-d <directory>] <url>
 //
 // Example
+//
+// To download a snippet under ~/bin and make it executable:
 //
 //   $ qiita-dl -x -d ~/bin http://qiita.com/uasi/items/57da2e4268d348b371fb
 //   Title: "git commit --fixup で fixup する対象を peco/fzf で選べるスクリプト書いた"
@@ -24,6 +24,8 @@ import (
 )
 
 func main() {
+	log.SetFlags(0)
+
 	var (
 		flagExecutable = flag.Bool("x", false, "mark downloaded snippet as executable")
 		flagFilename   = flag.String("o", "", "output filename")
@@ -31,13 +33,15 @@ func main() {
 		flagIndex      = flag.Uint("n", 0, "specify snippet index")
 	)
 
+	flag.Usage = func() {
+		log.Printf("usage: %s [-x] [-o <name>] [-d <directory>] <url>", os.Args[0])
+		flag.PrintDefaults()
+	}
 	flag.Parse()
-
-	log.SetFlags(0)
 
 	url := flag.Arg(0)
 	if url == "" {
-		flag.PrintDefaults()
+		flag.Usage()
 		os.Exit(1)
 	}
 
